@@ -40,7 +40,7 @@ st.markdown("""
 @st.cache_data
 def load_data():
     # Load the CSV - Ensure this filename matches your uploaded file in GitHub
-    df = pd.read_csv("LIVE MASTER LIST - Master List.csv")
+    df = pd.read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTKjBzr7QuJk9g7TR6p0-_GdPQDvesG9a1KTny6y5IyK0Z-G0_C98T-AfUyaAdyDB11h3vdpgc_h3Hh/pub?gid=618318322&single=true&output=csv")
     
     # Clean up 'Header' rows that might exist in the middle of the CSV
     df = df.dropna(subset=['Ticker'])
