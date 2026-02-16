@@ -4,7 +4,7 @@ import pandas as pd
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="RIR Search", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. AGGRESSIVE CUSTOM CSS (THE FIX) ---
+# --- 2. CUSTOM CSS (DARK MODE & TABLE FIXES) ---
 st.markdown("""
     <style>
         /* 1. MAIN BACKGROUND */
@@ -12,77 +12,68 @@ st.markdown("""
             background-color: #0D1117;
         }
 
-        /* 2. FORCE TEXT COLOR IN ALL INPUTS (The Nuclear Fix) */
-        /* Targets the actual input box text and placeholder text */
-        input, .stTextInput input, .stNumberInput input {
-            color: #E6EDF3 !important;
-            -webkit-text-fill-color: #E6EDF3 !important;
-            caret-color: #E6EDF3 !important; /* The typing cursor */
-        }
-
-        /* 3. MULTI-SELECT & DROPDOWN CONTAINERS */
-        /* This background color applies to the box you click on */
-        .stMultiSelect div[data-baseweb="select"] > div {
+        /* 2. INPUTS & DROPDOWNS */
+        /* Hides the default label text above boxes */
+        label {display: none !important;}
+        
+        /* The input boxes themselves */
+        .stTextInput input, .stMultiSelect, .stNumberInput input, div[data-baseweb="select"] > div {
             background-color: #1E293B !important;
-            border-color: #30363d !important;
             color: #E6EDF3 !important;
+            border: 1px solid #30363d;
+            border-radius: 6px;
         }
         
-        /* 4. TEXT INSIDE DROPDOWNS (The "Filter by..." text) */
-        /* Forces the text span inside the box to be light */
-        .stMultiSelect div[data-baseweb="select"] span {
-            color: #E6EDF3 !important;
-            -webkit-text-fill-color: #E6EDF3 !important;
-            opacity: 1 !important;
-        }
-        
-        /* 5. PLACEHOLDERS (Universal Override) */
-        /* This catches any text that is a "placeholder" */
-        ::placeholder {
-            color: #E6EDF3 !important;
-            opacity: 1 !important;
-            -webkit-text-fill-color: #E6EDF3 !important;
-        }
-        
-        /* 6. DROPDOWN MENU ITEMS (The pop-up list) */
-        ul[data-testid="stSelectboxVirtualDropdown"] {
-            background-color: #1E293B !important;
-        }
+        /* Dropdown Menu Items (The list that pops up) */
         ul[data-testid="stSelectboxVirtualDropdown"] li {
             background-color: #1E293B !important;
             color: #E6EDF3 !important;
         }
-        /* Highlight color when hovering over an option */
-        li[role="option"]:hover {
-            background-color: #8AC7DE !important;
-            color: #0D1117 !important;
-        }
         
-        /* 7. SELECTED TAGS (The blue bubbles) */
-        .stMultiSelect span[data-baseweb="tag"] {
+        /* 3. TEXT COLORS */
+        /* Placeholder text color */
+        ::placeholder {color: #94A3B8 !important; opacity: 1;}
+        /* General text */
+        p, .stMarkdown {color: #E6EDF3;}
+        /* Tags inside multi-select */
+        .stMultiSelect span {
             background-color: #8AC7DE !important; 
             color: #0D1117 !important;
+            font-weight: bold;
         }
-        
-        /* 8. TABLE STYLING */
-        div[data-testid="stDataFrame"] {background-color: #0D1117; border: none;}
+
+        /* 4. TABLE STYLING (Dark Mode) */
+        /* The entire table container */
+        div[data-testid="stDataFrame"] {
+            background-color: #0D1117;
+            border: none;
+        }
+        /* Table Header */
         thead tr th {
             background-color: #1E293B !important;
-            color: #8AC7DE !important;
+            color: #8AC7DE !important; /* Accent Color for Headers */
+            font-weight: bold;
             border-bottom: 1px solid #30363d !important;
         }
+        /* Table Rows */
         tbody tr td {
             background-color: #0D1117 !important;
             color: #E6EDF3 !important;
             border-bottom: 1px solid #30363d !important;
         }
+        /* Hover Effect */
+        tbody tr:hover td {
+            background-color: #161B22 !important;
+        }
 
-        /* CLEANUP: Hide Labels & Spinners */
-        label {display: none !important;}
+        /* 5. HIDE NUMBER INPUT SPINNERS (The +/- buttons) */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; margin: 0; 
+            -webkit-appearance: none; 
+            margin: 0; 
         }
+
+        /* Hide Streamlit Bloat */
         header {visibility: hidden;}
         footer {visibility: hidden;}
         .block-container {padding-top: 1rem; padding-bottom: 0rem; max-width: 1200px;}
@@ -98,6 +89,7 @@ def load_data():
     except:
         return pd.DataFrame()
 
+    # Cleaning
     df = df.dropna(subset=['Ticker'])
     df = df[df['Ticker'] != 'Ticker']
     
@@ -125,29 +117,34 @@ if df.empty: st.stop()
 # --- 4. UI LAYOUT ---
 
 # ROW 1: Main Search
-search_input = st.text_input("Search", placeholder="Search any Ticker, Strategy, Company or Underlying (e.g. NVDY, Bitcoin, 0DTE)...")
+search_input = st.text_input("", placeholder="Search any Ticker, Strategy, Company or Underlying (e.g. NVDY, Bitcoin, 0DTE)...")
 
 # ROW 2: Filters
 col1, col2, col3 = st.columns(3)
 
 with col1:
+    # Strategy Filter
     all_tags = set()
     for tags in df['Category'].str.split(','):
         for tag in tags:
             if tag.strip(): all_tags.add(tag.strip())
-    selected_strategies = st.multiselect("Strat", options=sorted(list(all_tags)), placeholder="Filter by Strategy")
+    
+    selected_strategies = st.multiselect("", options=sorted(list(all_tags)), placeholder="Filter by Strategy")
 
 with col2:
+    # Frequency Filter
     freq_opts = sorted(df['Payout'].unique().tolist())
-    selected_freq = st.multiselect("Freq", options=freq_opts, placeholder="Payout Frequency")
+    selected_freq = st.multiselect("", options=freq_opts, placeholder="Payout Frequency")
 
 with col3:
-    # We use Number Input but style it like text (no spinners)
-    min_yield = st.number_input("Yield", min_value=0.0, max_value=200.0, step=1.0, format="%.0f", placeholder="Min Yield % (Type a number)")
+    # Min Yield Filter (Number Input disguised as Text Box)
+    # Step=0.0 removes the float behavior visually, format prevents weird decimals
+    min_yield = st.number_input("", min_value=0.0, max_value=200.0, step=1.0, format="%.0f", placeholder="Min Yield % (Type a number)")
 
 
 # --- 5. LOGIC & DISPLAY ---
 
+# Trigger Logic: Only show if user does something
 has_search = bool(search_input)
 has_strat = bool(selected_strategies)
 has_freq = bool(selected_freq)
@@ -183,13 +180,16 @@ if has_search or has_strat or has_freq or has_yield:
 
     # --- DISPLAY TABLE ---
     if not filtered.empty:
+        # Define Columns
         cols = ['Ticker', 'Current Price', 'Dividend', 'Payout', 'Pay Date', 'Strategy', 'Category']
         final_cols = [c for c in cols if c in filtered.columns]
 
-        # Dynamic Height
+        # Calculate Height dynamically (35px per row + 38px buffer)
+        # If > 10 rows, cap it at 500px to allow scrolling
         num_rows = len(filtered)
         dynamic_height = min((num_rows * 35) + 38, 500)
 
+        # Render Table
         st.dataframe(
             filtered[final_cols].style.format({
                 'Dividend': '{:.2f}%',
