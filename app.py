@@ -26,7 +26,6 @@ st.markdown("""
 @st.cache_data
 def load_data():
     # LINK TO YOUR LIVE GOOGLE SHEET CSV (Paste your link here if using live sync)
-    # OR use "master_list.csv" if using the uploaded file
     csv_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTKjBzr7QuJk9g7TR6p0-_GdPQDvesG9a1KTny6y5IyK0Z-G0_C98T-AfUyaAdyDB11h3vdpgc_h3Hh/pubhtml?gid=618318322&single=true" 
     
     try:
