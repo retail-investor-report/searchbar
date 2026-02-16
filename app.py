@@ -1,139 +1,174 @@
 import streamlit as st
 import pandas as pd
 
-# 1. PAGE CONFIGURATION (Bloomberg Style Title)
-st.set_page_config(
-    page_title="RIR Master List",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# --- 1. CONFIGURATION & STYLE ---
+st.set_page_config(page_title="RIR Master List", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. CUSTOM CSS FOR "BLOOMBERG TERMINAL" AESTHETIC
-# This makes the app dark, high-contrast, and removes default Streamlit padding for a 'widget' feel.
 st.markdown("""
     <style>
-        /* Main Background */
-        .stApp {
-            background-color: #0e1117;
-            color: #ff9f1c; /* Retail Investor Report Orange accent */
+        .stApp {background-color: #0e1117; color: #e0e0e0;}
+        div[data-testid="stMetric"] {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            padding: 15px;
+            border-radius: 6px;
         }
-        /* Dataframe styling */
-        .stDataFrame {
-            border: 1px solid #333;
-        }
-        /* Inputs and Text */
-        p, .stTextInput label, .stMultiSelect label, .stSlider label {
-            color: #e0e0e0 !important;
-            font-family: 'Roboto Mono', monospace;
-        }
-        /* Hide Streamlit Header/Footer for clean embed */
+        div[data-testid="stMetricLabel"] {color: #ff9f1c !important; font-weight: bold;}
+        div[data-testid="stMetricValue"] {color: #ffffff !important;}
+        .stTextInput input, .stMultiSelect, .stSlider {color: #e0e0e0;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
-        .block-container {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
+        .block-container {padding-top: 1rem; padding-bottom: 0rem;}
     </style>
 """, unsafe_allow_html=True)
 
-# 3. DATA LOADING & CLEANING FUNCTION
+# --- 2. DATA ENGINE (FIXED) ---
 @st.cache_data
 def load_data():
-    # Load the CSV - Ensure this filename matches your uploaded file in GitHub
-    df = pd.read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTKjBzr7QuJk9g7TR6p0-_GdPQDvesG9a1KTny6y5IyK0Z-G0_C98T-AfUyaAdyDB11h3vdpgc_h3Hh/pub?gid=618318322&single=true&output=csv")
+    # LINK TO YOUR LIVE GOOGLE SHEET CSV (Paste your link here if using live sync)
+    # OR use "master_list.csv" if using the uploaded file
+    csv_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTKjBzr7QuJk9g7TR6p0-_GdPQDvesG9a1KTny6y5IyK0Z-G0_C98T-AfUyaAdyDB11h3vdpgc_h3Hh/pubhtml?gid=618318322&single=true" 
     
-    # Clean up 'Header' rows that might exist in the middle of the CSV
-    df = df.dropna(subset=['Ticker'])
-    df = df[df['Ticker'] != 'Ticker'] # Remove repeated headers if any
+    try:
+        df = pd.read_csv(csv_url)
+    except:
+        # Fallback if file not found locally
+        return pd.DataFrame()
 
-    # --- Data Cleaning Logic ---
+    # A. Basic Cleanup
+    df = df.dropna(subset=['Ticker'])
+    df = df[df['Ticker'] != 'Ticker']
     
-    # 1. Clean Percentage Columns (Dividend, Payout, etc.)
-    cols_to_clean_pct = ['Dividend', 'Payout', 'Expense Ratio']
-    for col in cols_to_clean_pct:
+    # B. Clean Percentage Columns (Remove % and convert to float)
+    cols_to_clean = ['Dividend', 'Expense Ratio', 'Yield']
+    for col in cols_to_clean:
         if col in df.columns:
-            # Remove %, convert to float
+            # Remove '%' and convert to number
             df[col] = df[col].astype(str).str.replace('%', '', regex=False)
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
-    # 2. Clean Currency/AUM Columns
-    # Function to convert "$3.95M" or "$8.63B" to actual numbers
+    # C. FIX: Clean "Current Price" (Remove $ and convert to float)
+    if 'Current Price' in df.columns:
+        df['Current Price'] = df['Current Price'].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False)
+        df['Current Price'] = pd.to_numeric(df['Current Price'], errors='coerce').fillna(0)
+
+    # D. Clean AUM (Handle B and M)
     def parse_aum(x):
         x = str(x).upper().replace('$', '').replace(',', '')
-        if 'M' in x:
-            return float(x.replace('M', '')) * 1_000_000
-        elif 'B' in x:
-            return float(x.replace('B', '')) * 1_000_000_000
-        try:
-            return float(x)
-        except:
-            return 0
-
+        if 'M' in x: return float(x.replace('M', '')) * 1_000_000
+        if 'B' in x: return float(x.replace('B', '')) * 1_000_000_000
+        try: return float(x)
+        except: return 0
+    
     if 'AUM' in df.columns:
         df['AUM_Numeric'] = df['AUM'].apply(parse_aum)
-
+    
+    # E. Ensure Category Exists
+    if 'Category' not in df.columns and len(df.columns) >= 16:
+        df.rename(columns={df.columns[15]: 'Category'}, inplace=True)
+    df['Category'] = df['Category'].fillna('Other').astype(str)
+    
     return df
 
-df = load_data()
+try:
+    df = load_data()
+    if df.empty:
+        st.error("Could not load data. Please check your CSV file.")
+        st.stop()
+except Exception as e:
+    st.error(f"Error loading data: {e}")
+    st.stop()
 
-# 4. SEARCH & FILTER BAR (Layout)
-# We use columns to create a single horizontal "Bar" feel
-col1, col2, col3, col4 = st.columns([2, 1.5, 1.5, 1.5])
+# --- 3. SIDEBAR / FILTER BAR ---
+col1, col2, col3 = st.columns([2, 1, 1])
 
 with col1:
-    # Universal Search Bar
-    search_query = st.text_input("🔍 Search Ticker or Name", placeholder="e.g. NVDY, YieldMax...")
+    search_input = st.text_input("🔍 Search Ticker, Name, or Strategy", placeholder="e.g. YieldMax, Bitcoin, MSTY...")
 
 with col2:
-    # Filter by Underlying (SPY, QQQ, BTC, etc.)
-    underlying_options = sorted(df['Underlying'].dropna().unique().tolist())
-    selected_underlying = st.multiselect("Underlying Asset", underlying_options)
+    all_tags = set()
+    for tags in df['Category'].str.split(','):
+        for tag in tags:
+            clean_tag = tag.strip()
+            if clean_tag: all_tags.add(clean_tag)
+    selected_strategies = st.multiselect("Filter by Strategy", sorted(list(all_tags)))
 
 with col3:
-    # Filter by Company (Issuer)
-    company_options = sorted(df['Company'].dropna().unique().tolist())
-    selected_company = st.multiselect("Issuer", company_options)
+    if 'Payout' in df.columns:
+        freq_options = df['Payout'].dropna().unique().tolist()
+        selected_freq = st.multiselect("Payout Frequency", sorted(freq_options))
+    else:
+        selected_freq = []
 
+col4, col5 = st.columns([1, 1])
 with col4:
-    # Filter by Yield %
-    min_yield = st.number_input("Min Yield %", min_value=0.0, max_value=200.0, value=10.0, step=5.0)
+    min_yield = st.slider("Minimum Yield %", 0, 150, 0, 5)
+with col5:
+    if 'Company' in df.columns:
+        all_issuers = sorted(df['Company'].dropna().unique().tolist())
+        selected_issuer = st.multiselect("Issuer / Company", all_issuers)
+    else:
+        selected_issuer = []
 
-# 5. FILTERING LOGIC
-filtered_df = df.copy()
+# --- 4. FILTERING ---
+filtered = df.copy()
 
-# Apply Text Search
-if search_query:
-    filtered_df = filtered_df[
-        filtered_df['Ticker'].str.contains(search_query, case=False, na=False) |
-        filtered_df['Strategy'].str.contains(search_query, case=False, na=False)
+if search_input:
+    filtered = filtered[
+        filtered['Ticker'].str.contains(search_input, case=False, na=False) |
+        filtered['Strategy'].str.contains(search_input, case=False, na=False) |
+        filtered['Category'].str.contains(search_input, case=False, na=False)
     ]
 
-# Apply Underlying Filter
-if selected_underlying:
-    filtered_df = filtered_df[filtered_df['Underlying'].isin(selected_underlying)]
+if selected_strategies:
+    pattern = '|'.join(selected_strategies)
+    filtered = filtered[filtered['Category'].str.contains(pattern, case=False, regex=True)]
 
-# Apply Company Filter
-if selected_company:
-    filtered_df = filtered_df[filtered_df['Company'].isin(selected_company)]
+if selected_freq:
+    filtered = filtered[filtered['Payout'].isin(selected_freq)]
 
-# Apply Yield Filter
-if 'Dividend' in filtered_df.columns:
-    filtered_df = filtered_df[filtered_df['Dividend'] >= min_yield]
+if selected_issuer:
+    filtered = filtered[filtered['Company'].isin(selected_issuer)]
 
-# 6. DISPLAY DATA
-# Customize which columns to show in the final table
-display_cols = [
-    'Ticker', 'Current Price', 'Dividend', 'Pay Date', 
-    'AUM', 'Company', 'Underlying', 'Strategy'
-]
+if 'Dividend' in df.columns:
+    filtered = filtered[filtered['Dividend'] >= min_yield]
 
-# Formatting for display (Add % back visually, but keep data numeric for sorting)
-st.dataframe(
-    filtered_df[display_cols].style.format({
-        'Dividend': '{:.2f}%',
-        'Current Price': '${:.2f}',
-    }),
-    hide_index=True,
-    use_container_width=True,
-    height=500 # Fixed height for scrollable area
-)
+# --- 5. DISPLAY RESULTS ---
+st.divider()
+
+# A. DRILL DOWN
+if not filtered.empty:
+    fund_list = ["Select a Fund..."] + sorted(filtered['Ticker'].unique().tolist())
+    selected_fund = st.selectbox("Inspect a specific fund (View Details):", fund_list)
+
+    if selected_fund != "Select a Fund...":
+        row = filtered[filtered['Ticker'] == selected_fund].iloc[0]
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Current Price", f"${row.get('Current Price', 0):.2f}")
+        c2.metric("Yield", f"{row.get('Dividend', 0)}%")
+        c3.metric("Freq", row.get('Payout', '-'))
+        c4.metric("Fee", f"{row.get('Expense Ratio', 0)}%")
+        
+        st.info(f"**Strategy:** {row.get('Strategy', 'No description')}")
+        st.caption(f"**Category Tags:** {row.get('Category')}")
+        st.divider()
+
+# B. MAIN TABLE
+cols_to_show = ['Ticker', 'Current Price', 'Dividend', 'Payout', 'Pay Date', 'Company', 'Category']
+final_cols = [c for c in cols_to_show if c in filtered.columns]
+
+st.markdown(f"**Showing {len(filtered)} Funds**")
+
+# SAFE DISPLAY (Prevents Formatting Errors)
+if not filtered.empty:
+    st.dataframe(
+        filtered[final_cols].style.format({
+            'Dividend': '{:.2f}%',
+            'Current Price': '${:.2f}'
+        }),
+        height=500,
+        use_container_width=True,
+        hide_index=True
+    )
+else:
+    st.warning("No funds match your search.")
