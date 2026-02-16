@@ -4,7 +4,7 @@ import pandas as pd
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="RIR Search", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CUSTOM CSS (THE FIX) ---
+# --- 2. AGGRESSIVE CUSTOM CSS (THE FIX) ---
 st.markdown("""
     <style>
         /* 1. MAIN BACKGROUND */
@@ -12,53 +12,59 @@ st.markdown("""
             background-color: #0D1117;
         }
 
-        /* 2. INPUT BOXES (The containers) */
-        .stTextInput input, .stMultiSelect, .stNumberInput input, div[data-baseweb="select"] > div {
+        /* 2. FORCE TEXT COLOR IN ALL INPUTS (The Nuclear Fix) */
+        /* Targets the actual input box text and placeholder text */
+        input, .stTextInput input, .stNumberInput input {
+            color: #E6EDF3 !important;
+            -webkit-text-fill-color: #E6EDF3 !important;
+            caret-color: #E6EDF3 !important; /* The typing cursor */
+        }
+
+        /* 3. MULTI-SELECT & DROPDOWN CONTAINERS */
+        /* This background color applies to the box you click on */
+        .stMultiSelect div[data-baseweb="select"] > div {
             background-color: #1E293B !important;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #E6EDF3 !important; /* Forces typed text to be light */
+            border-color: #30363d !important;
+            color: #E6EDF3 !important;
         }
         
-        /* 3. PLACEHOLDER TEXT FIX (The "Filter by..." text) */
-        /* This targets the specific internal span that holds the placeholder */
+        /* 4. TEXT INSIDE DROPDOWNS (The "Filter by..." text) */
+        /* Forces the text span inside the box to be light */
         .stMultiSelect div[data-baseweb="select"] span {
+            color: #E6EDF3 !important;
+            -webkit-text-fill-color: #E6EDF3 !important;
+            opacity: 1 !important;
+        }
+        
+        /* 5. PLACEHOLDERS (Universal Override) */
+        /* This catches any text that is a "placeholder" */
+        ::placeholder {
             color: #E6EDF3 !important;
             opacity: 1 !important;
             -webkit-text-fill-color: #E6EDF3 !important;
         }
         
-        /* Universal placeholder targeting */
-        ::placeholder {
-            color: #E6EDF3 !important;
-            opacity: 1 !important;
+        /* 6. DROPDOWN MENU ITEMS (The pop-up list) */
+        ul[data-testid="stSelectboxVirtualDropdown"] {
+            background-color: #1E293B !important;
         }
-        
-        /* 4. DROPDOWN MENU ITEMS (The pop-up list) */
         ul[data-testid="stSelectboxVirtualDropdown"] li {
             background-color: #1E293B !important;
             color: #E6EDF3 !important;
         }
-        /* Hover state for dropdown items */
+        /* Highlight color when hovering over an option */
         li[role="option"]:hover {
             background-color: #8AC7DE !important;
             color: #0D1117 !important;
         }
-
-        /* 5. TAGS (Selected Items) */
+        
+        /* 7. SELECTED TAGS (The blue bubbles) */
         .stMultiSelect span[data-baseweb="tag"] {
             background-color: #8AC7DE !important; 
-            color: #0D1117 !important; /* Dark text on Light Blue tag */
+            color: #0D1117 !important;
         }
         
-        /* 6. HIDE LABELS & SPINNERS */
-        label {display: none !important;}
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; margin: 0; 
-        }
-
-        /* 7. TABLE STYLING */
+        /* 8. TABLE STYLING */
         div[data-testid="stDataFrame"] {background-color: #0D1117; border: none;}
         thead tr th {
             background-color: #1E293B !important;
@@ -71,7 +77,12 @@ st.markdown("""
             border-bottom: 1px solid #30363d !important;
         }
 
-        /* Hide Streamlit Elements */
+        /* CLEANUP: Hide Labels & Spinners */
+        label {display: none !important;}
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; margin: 0; 
+        }
         header {visibility: hidden;}
         footer {visibility: hidden;}
         .block-container {padding-top: 1rem; padding-bottom: 0rem; max-width: 1200px;}
@@ -81,14 +92,12 @@ st.markdown("""
 # --- 3. DATA LOADING ---
 @st.cache_data(ttl=600)
 def load_data():
-    # YOUR LIVE LINK
     csv_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTKjBzr7QuJk9g7TR6p0-_GdPQDvesG9a1KTny6y5IyK0Z-G0_C98T-AfUyaAdyDB11h3vdpgc_h3Hh/pub?gid=618318322&single=true&output=csv"
     try:
         df = pd.read_csv(csv_url)
     except:
         return pd.DataFrame()
 
-    # Cleaning
     df = df.dropna(subset=['Ticker'])
     df = df[df['Ticker'] != 'Ticker']
     
@@ -122,21 +131,18 @@ search_input = st.text_input("Search", placeholder="Search any Ticker, Strategy,
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    # Strategy Filter
     all_tags = set()
     for tags in df['Category'].str.split(','):
         for tag in tags:
             if tag.strip(): all_tags.add(tag.strip())
-    
     selected_strategies = st.multiselect("Strat", options=sorted(list(all_tags)), placeholder="Filter by Strategy")
 
 with col2:
-    # Frequency Filter
     freq_opts = sorted(df['Payout'].unique().tolist())
     selected_freq = st.multiselect("Freq", options=freq_opts, placeholder="Payout Frequency")
 
 with col3:
-    # Min Yield Filter
+    # We use Number Input but style it like text (no spinners)
     min_yield = st.number_input("Yield", min_value=0.0, max_value=200.0, step=1.0, format="%.0f", placeholder="Min Yield % (Type a number)")
 
 
@@ -180,7 +186,7 @@ if has_search or has_strat or has_freq or has_yield:
         cols = ['Ticker', 'Current Price', 'Dividend', 'Payout', 'Pay Date', 'Strategy', 'Category']
         final_cols = [c for c in cols if c in filtered.columns]
 
-        # Dynamic Height Calculation
+        # Dynamic Height
         num_rows = len(filtered)
         dynamic_height = min((num_rows * 35) + 38, 500)
 
