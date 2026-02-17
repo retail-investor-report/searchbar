@@ -4,7 +4,7 @@ import pandas as pd
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="RIR Search", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CUSTOM CSS (DARK MODE & TABLE FIXES) ---
+# --- 2. CUSTOM CSS ---
 st.markdown("""
     <style>
         /* 1. MAIN BACKGROUND */
@@ -13,14 +13,10 @@ st.markdown("""
             color: #E6EDF3;
         }
 
-        /* 2. HIDE LABELS & SPINNERS */
+        /* 2. HIDE DEFAULT LABELS (Global) */
         label {display: none !important;}
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; margin: 0; 
-        }
 
-        /* 3. INPUTS & SELECTS (The Fix) */
+        /* 3. INPUTS & SELECTS (The "Secret Sauce") */
         div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"] {
             background-color: #1E293B !important;
             border-color: #30363d !important;
@@ -29,11 +25,10 @@ st.markdown("""
             min-height: 40px !important;
         }
         
-        /* Force text color inside inputs */
         input { color: #E6EDF3 !important; font-weight: bold !important; }
         div[data-baseweb="select"] div { color: #E6EDF3 !important; }
 
-        /* 4. DROPDOWN MENU */
+        /* 4. DROPDOWN MENUS */
         ul[role="listbox"], div[data-baseweb="menu"] {
             background-color: #1E293B !important;
             border: 1px solid #30363d !important;
@@ -48,7 +43,30 @@ st.markdown("""
             font-weight: bold !important;
         }
 
-        /* 5. TAGS & ICONS */
+        /* 5. SLIDER STYLING (The Linear Gauge) */
+        /* The Text above the slider */
+        .slider-label {
+            color: #94A3B8;
+            font-size: 14px;
+            margin-bottom: -10px; /* Pull slider closer to text */
+            font-weight: 400;
+        }
+        /* The Thumb (Draggable Circle) */
+        div[role="slider"] {
+            background-color: #8AC7DE !important;
+            border-color: #8AC7DE !important;
+            box-shadow: 0 0 10px rgba(138, 199, 222, 0.3) !important;
+        }
+        /* The Track (The Line) */
+        div[data-baseweb="slider"] div {
+            background-color: #30363d !important;
+        }
+        /* The Value Text (The number that moves) */
+        div[data-testid="stMarkdownContainer"] p {
+            color: #E6EDF3;
+        }
+
+        /* 6. TAGS & ICONS */
         .stMultiSelect span[data-baseweb="tag"] {
             background-color: #8AC7DE !important; 
             color: #0D1117 !important;
@@ -57,7 +75,7 @@ st.markdown("""
         .stSelectbox svg, .stMultiSelect svg { fill: #8AC7DE !important; }
         ::placeholder { color: #94A3B8 !important; opacity: 1; }
 
-        /* 6. TABLE STYLING (FORCE DARK) */
+        /* 7. TABLE STYLING */
         div[data-testid="stDataFrame"] {
             background-color: #0D1117 !important;
             border: 1px solid #30363d;
@@ -104,17 +122,10 @@ def load_data():
         if col in df.columns: df[col] = df[col].fillna('-').astype(str)
         else: df[col] = '-'
 
-    if 'Dividend' in df.columns:
-        df['Dividend'] = df['Dividend'].astype(str).str.replace('%', '', regex=False)
-        df['Dividend'] = pd.to_numeric(df['Dividend'], errors='coerce').fillna(0)
-
-    if 'Current Price' in df.columns:
-        df['Current Price'] = df['Current Price'].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False)
-        df['Current Price'] = pd.to_numeric(df['Current Price'], errors='coerce').fillna(0)
-    
-    if 'Latest Distribution' in df.columns:
-        df['Latest Distribution'] = df['Latest Distribution'].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False)
-        df['Latest Distribution'] = pd.to_numeric(df['Latest Distribution'], errors='coerce').fillna(0)
+    for col in ['Dividend', 'Current Price', 'Latest Distribution']:
+        if col in df.columns:
+            df[col] = df[col].astype(str).str.replace('$', '', regex=False).str.replace('%', '', regex=False).str.replace(',', '', regex=False)
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
     
     return df
 
@@ -138,20 +149,12 @@ with col2:
     selected_freq = st.multiselect("", options=freq_opts, placeholder="Payout Frequency")
 
 with col3:
-    # UPDATED: Text Input instead of Number Input to avoid the "0.00" default value
-    yield_input = st.text_input("", placeholder="Min Yield % (e.g. 15)")
+    # Custom HTML Label to simulate the "Placeholder" look
+    st.markdown('<p class="slider-label">Minimum Yield % (Drag to filter)</p>', unsafe_allow_html=True)
+    # The Slider (Linear Gauge)
+    min_yield = st.slider("", min_value=0, max_value=150, value=0, step=1)
 
 # --- 5. LOGIC & DISPLAY ---
-# Convert text input to float safely
-min_yield = 0.0
-if yield_input:
-    try:
-        # Strip % signs and spaces, convert to float
-        clean_input = yield_input.replace('%', '').strip()
-        min_yield = float(clean_input)
-    except:
-        pass # If they type garbage, ignore it (treat as 0)
-
 has_search = bool(search_input)
 has_strat = bool(selected_strategies)
 has_freq = bool(selected_freq)
@@ -181,7 +184,7 @@ if has_search or has_strat or has_freq or has_yield:
         filtered = filtered[filtered['Dividend'] >= min_yield]
 
     if not filtered.empty:
-        # --- PREPARE TABLE ---
+        # Prepare Display
         rename_map = {
             'Current Price': 'Price',
             'Dividend': 'Yield %',
@@ -192,25 +195,18 @@ if has_search or has_strat or has_freq or has_yield:
         }
         
         target_order = [
-            'Ticker', 
-            'Strategy', 
-            'Underlying',
-            'Current Price',
-            'Payout', 
-            'Latest Distribution',
-            'Dividend',
-            'Declaration Date', 
-            'Ex-Div Date', 
-            'Pay Date'
+            'Ticker', 'Strategy', 'Underlying', 'Current Price', 'Payout', 
+            'Latest Distribution', 'Dividend', 'Declaration Date', 'Ex-Div Date', 'Pay Date'
         ]
         
         existing_cols = [c for c in target_order if c in filtered.columns]
         display_df = filtered[existing_cols].rename(columns=rename_map)
 
-        # SORT BY HIGHEST YIELD
+        # Sort by Yield
         if 'Yield %' in display_df.columns:
             display_df = display_df.sort_values(by='Yield %', ascending=False)
 
+        # Dynamic Height
         num_rows = len(display_df)
         dynamic_height = min((num_rows * 35) + 38, 500)
 
