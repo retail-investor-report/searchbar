@@ -181,14 +181,14 @@ with left_col:
 with right_col:
     # The Yield Slider (Takes up the whole right side block)
     # We add a spacer to align it vertically if needed, but flexbox CSS handles most
-    min_yield = st.slider("💰 Search by Minimum Annualized Yield %", 0, 150, 0)
+    yield_range = st.slider("💰 Search by Annualized Yield %", 0, 150, (0, 150))
 
 # --- 5. LOGIC & DISPLAY ---
 search_input = st.session_state.search_term
 has_search = bool(search_input)
 has_strat = bool(selected_strategies)
 has_freq = bool(selected_freq)
-has_yield = min_yield > 0
+has_yield = yield_range[0] > 0 or yield_range[1] < 150
 
 if has_search or has_strat or has_freq or has_yield:
     filtered = df.copy()
@@ -207,7 +207,7 @@ if has_search or has_strat or has_freq or has_yield:
     if has_freq:
         filtered = filtered[filtered['Payout'].isin(selected_freq)]
     if has_yield and 'Dividend' in filtered.columns:
-        filtered = filtered[filtered['Dividend'] >= min_yield]
+        filtered = filtered[(filtered['Dividend'] >= yield_range[0]) & (filtered['Dividend'] <= yield_range[1])]
     if not filtered.empty:
         # Prepare Display
         rename_map = {
