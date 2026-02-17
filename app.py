@@ -7,121 +7,123 @@ st.set_page_config(page_title="RIR Search", layout="wide", initial_sidebar_state
 # --- 2. CUSTOM CSS ---
 st.markdown("""
     <style>
-        /* MAIN BACKGROUND */
+        /* 1. MAIN BACKGROUND */
         .stApp {
             background-color: #0D1117;
             color: #E6EDF3;
         }
-        
-        /* Reduce global padding */
-        .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 0rem !important;
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-            max-width: 100% !important;
-        }
-        
-        header {visibility: hidden !important; height: 0 !important;}
-        footer {visibility: hidden !important;}
-        
-        /* INPUTS & DROPDOWNS - uniform height and styling */
+        /* 2. HIDE DEFAULT LABELS */
+        label {display: none !important;}
+        /* 3. INPUTS & DROPDOWNS */
         div[data-baseweb="select"] > div,
         div[data-baseweb="input"] > div,
         div[data-baseweb="base-input"] {
             background-color: #1E293B !important;
             border-color: #30363d !important;
-            color: #ffffff !important;           /* Pure white text */
-            border-radius: 6px !important;
-            min-height: 48px !important;          /* Same height for all */
-            height: 48px !important;
-            font-size: 16px !important;
-            font-weight: normal !important;       /* Not bold */
-            line-height: 1.5 !important;
-            padding: 0 12px !important;
-        }
-        
-        /* Make sure text input matches exactly */
-        .stTextInput > div > div > input {
-            height: 48px !important;
-            min-height: 48px !important;
-            color: #ffffff !important;
-            font-weight: normal !important;
-            font-size: 16px !important;
-            background-color: transparent !important;
-        }
-        
-        /* Fix blurry text - better contrast + crisp rendering */
-        input, div[data-baseweb="select"] div, .stTextInput input {
-            -webkit-font-smoothing: antialiased !important;
-            -moz-osx-font-smoothing: grayscale !important;
-            text-rendering: optimizeLegibility !important;
-        }
-        
-        /* Placeholder styling */
-        ::placeholder {
-            color: #94A3B8 !important;
-            opacity: 1 !important;
-            font-weight: normal !important;
-        }
-        
-        /* Dropdown menu items */
-        ul[role="listbox"] li, div[data-baseweb="menu"] li {
-            font-size: 16px !important;
             color: #E6EDF3 !important;
+            border-radius: 6px !important;
+            min-height: 45px !important;
         }
-        
-        /* Slider styling */
+        input { color: #E6EDF3 !important; font-weight: bold !important; }
+        div[data-baseweb="select"] div { color: #E6EDF3 !important; }
+        /* 4. DROPDOWN MENUS */
+        ul[role="listbox"], div[data-baseweb="menu"] {
+            background-color: #1E293B !important;
+            border: 1px solid #30363d !important;
+        }
+        li[role="option"] {
+            color: #E6EDF3 !important;
+            background-color: #1E293B !important;
+        }
+        li[role="option"]:hover, li[role="option"][aria-selected="true"] {
+            background-color: #8AC7DE !important;
+            color: #0D1117 !important;
+        }
+        .stMultiSelect span[data-baseweb="tag"] {
+            background-color: #8AC7DE !important;
+            color: #0D1117 !important;
+            font-weight: bold;
+        }
+       
+        /* 5. THE YIELD SLIDER (TOTAL OVERHAUL) */
+       
+        /* The Container Box */
         div[data-testid="stSlider"] {
             background-color: #1E293B;
             border: 1px solid #30363d;
             border-radius: 6px;
-            padding: 8px 12px;
-            height: 100%;
+            padding: 5px 10px; /* Further reduced padding for tighter fit */
+            height: 100%; /* Fill the container */
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
-        
+       
+        /* The Text Label (Manual Override) */
         div[data-testid="stSlider"] label {
             display: block !important;
             color: #E6EDF3 !important;
-            font-size: 16px !important;
+            font-size: 16px !important; /* Adjusted font size */
             font-weight: 600 !important;
-            margin-bottom: 6px !important;
+            margin-bottom: 5px !important; /* Reduced margin */
         }
-        
-        /* Table styling */
+       
+        /* The Track (The Grey Line) - FIXED VISIBILITY */
+        div[data-baseweb="slider"] div[style*="background-color: rgb(211, 211, 211)"] {
+             background-color: #4B5563 !important; /* Visible Grey */
+        }
+       
+        /* The Selected Track (The Blue Line) */
+        div[data-baseweb="slider"] div[style*="background-color: rgb(255, 75, 75)"] {
+             background-color: #8AC7DE !important;
+        }
+        /* The Thumb (Draggable Circle) */
+        div[role="slider"] {
+            background-color: #8AC7DE !important;
+            border: 2px solid #E6EDF3 !important;
+            box-shadow: 0 0 10px rgba(138, 199, 222, 0.4);
+            width: 20px !important;
+            height: 20px !important;
+        }
+       
+        /* The Value Display (next to slider) */
+        div[data-baseweb="slider"] span {
+            color: #E6EDF3 !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+        }
+       
+        /* 6. TABLE STYLING */
         div[data-testid="stDataFrame"] {
             background-color: #0D1117 !important;
             border: 1px solid #30363d;
-            border-radius: 6px;
-            overflow: hidden;
+            border-radius: 5px;
         }
-        
         div[data-testid="stDataFrame"] div[role="columnheader"] {
             background-color: #1E293B !important;
             color: #8AC7DE !important;
             font-weight: bold;
             border-bottom: 1px solid #30363d;
-            padding: 12px !important;
         }
-        
         div[data-testid="stDataFrame"] div[role="gridcell"] {
             background-color: #0D1117 !important;
             color: #E6EDF3 !important;
             border-bottom: 1px solid #30363d;
-            padding: 10px !important;
         }
+        div[data-testid="stDataFrame"] div[role="row"]:hover div[role="gridcell"] {
+            background-color: #161B22 !important;
+        }
+        /* Cleanup */
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        .block-container {padding-top: 2rem; padding-bottom: 0rem; max-width: 1400px;}
+        ::placeholder { color: #94A3B8 !important; opacity: 1; }
         
-        /* Reduce gaps */
-        .row-widget.stTextInput { margin-bottom: -8px !important; }
-        .stMultiSelect { margin-top: 0 !important; margin-bottom: 0 !important; }
-        .element-container { margin: 0 !important; padding: 0 !important; }
-        .stHorizontalBlock > div { margin-top: 0 !important; padding-top: 0 !important; }
-        
-        /* Tighter layout overall */
-        .st-emotion-cache-ocqkz7 { gap: 0.5rem !important; }
+        /* 7. REDUCE GAPS BETWEEN ELEMENTS */
+        .row-widget.stTextInput { margin-bottom: -10px !important; } /* Slightly negative margin to pull dropdowns closer */
+        .stMultiSelect { margin-top: 0 !important; } /* No space before dropdowns */
+        .element-container { margin-top: 0 !important; margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; } /* General tightening */
+        .stHorizontalBlock > div { margin-top: 0 !important; } /* For sub-columns */
     </style>
 """, unsafe_allow_html=True)
 
@@ -152,11 +154,18 @@ df = load_data()
 if df.empty: st.stop()
 
 # --- 4. LAYOUT ---
+# Create two main columns:
+# LEFT (2/3 width) for Search + Dropdowns
+# RIGHT (1/3 width) for the big Yield Slider
 left_col, right_col = st.columns([2, 1])
 
 with left_col:
+    # Row 1: Search Bar (Full width of this column)
     st.text_input("", placeholder="🔍 Search any Ticker, Strategy, Company or Underlying...", key="search_term")
    
+    # No spacer - removed to close the gap
+   
+    # Row 2: The Dropdowns (Side by Side under search)
     c1, c2 = st.columns(2)
     with c1:
         all_tags = set()
@@ -170,21 +179,21 @@ with left_col:
         selected_freq = st.multiselect("", options=freq_opts, placeholder="⏰ Payout Frequency")
 
 with right_col:
+    # The Yield Slider (Takes up the whole right side block)
+    # We add a spacer to align it vertically if needed, but flexbox CSS handles most
     yield_range = st.slider("💰 Search by Annualized Yield %", 0, 150, (0, 150))
 
 # --- 5. LOGIC & DISPLAY ---
-search_input = st.session_state.get("search_term", "")
-has_search = bool(search_input.strip())
+search_input = st.session_state.search_term
+has_search = bool(search_input)
 has_strat = bool(selected_strategies)
 has_freq = bool(selected_freq)
 has_yield = yield_range[0] > 0 or yield_range[1] < 150
 
-# Only show table if at least one filter/search is active
 if has_search or has_strat or has_freq or has_yield:
     filtered = df.copy()
-    
     if has_search:
-        term = search_input.lower().strip()
+        term = search_input.lower()
         filtered = filtered[
             filtered['Ticker'].str.lower().str.contains(term) |
             filtered['Strategy'].str.lower().str.contains(term) |
@@ -192,18 +201,15 @@ if has_search or has_strat or has_freq or has_yield:
             filtered['Category'].str.lower().str.contains(term) |
             filtered['Underlying'].str.lower().str.contains(term)
         ]
-    
     if has_strat:
         for strat in selected_strategies:
             filtered = filtered[filtered['Category'].str.contains(strat, case=False)]
-    
     if has_freq:
         filtered = filtered[filtered['Payout'].isin(selected_freq)]
-    
     if has_yield and 'Dividend' in filtered.columns:
         filtered = filtered[(filtered['Dividend'] >= yield_range[0]) & (filtered['Dividend'] <= yield_range[1])]
-    
     if not filtered.empty:
+        # Prepare Display
         rename_map = {
             'Current Price': 'Price',
             'Dividend': 'Yield %',
@@ -220,13 +226,12 @@ if has_search or has_strat or has_freq or has_yield:
        
         existing_cols = [c for c in target_order if c in filtered.columns]
         display_df = filtered[existing_cols].rename(columns=rename_map)
-       
+        # Sort
         if 'Yield %' in display_df.columns:
             display_df = display_df.sort_values(by='Yield %', ascending=False)
-       
+        # Dynamic Height
         num_rows = len(display_df)
-        dynamic_height = min((num_rows * 36) + 50, 700)
-        
+        dynamic_height = min((num_rows * 35) + 38, 500)
         st.dataframe(
             display_df.style.format({
                 'Yield %': '{:.2f}%',
