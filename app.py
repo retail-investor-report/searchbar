@@ -13,22 +13,54 @@ st.markdown("""
             color: #E6EDF3;
         }
 
-        /* 2. HIDE DEFAULT LABELS (Global) */
+        /* 2. HIDE DEFAULT LABELS */
         label {display: none !important;}
 
-        /* 3. INPUTS & SELECTS (The "Secret Sauce") */
-        div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, div[data-baseweb="base-input"] {
+        /* 3. MATCHING INPUT BOXES (Dropdowns & Text Input) */
+        div[data-baseweb="select"] > div, 
+        div[data-baseweb="input"] > div, 
+        div[data-baseweb="base-input"] {
             background-color: #1E293B !important;
             border-color: #30363d !important;
             color: #E6EDF3 !important;
             border-radius: 6px !important;
-            min-height: 40px !important;
+            min-height: 45px !important; /* Enforce height consistency */
+        }
+
+        /* 4. THE YIELD "BOX" (Containerizing the Slider) */
+        /* This targets the slider widget wrapper to make it look like a box */
+        div[data-testid="stSlider"] {
+            background-color: #1E293B;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px 15px; /* Internal breathing room */
+            min-height: 45px;   /* Match dropdown height */
         }
         
-        input { color: #E6EDF3 !important; font-weight: bold !important; }
-        div[data-baseweb="select"] div { color: #E6EDF3 !important; }
+        /* 5. SLIDER STYLING INSIDE THE BOX */
+        /* The Label Text */
+        div[data-testid="stSlider"] label {
+            display: block !important; /* Show label only inside slider */
+            color: #94A3B8 !important;
+            font-size: 12px !important;
+            font-weight: 500 !important;
+            margin-bottom: -15px !important; /* Pull label down closer to line */
+        }
+        /* The Thumb (Circle) */
+        div[role="slider"] {
+            background-color: #8AC7DE !important;
+            box-shadow: 0 0 5px rgba(138, 199, 222, 0.5) !important;
+        }
+        /* The Track (Line) */
+        div[data-baseweb="slider"] div {
+            background-color: #0D1117 !important; /* Darker track for contrast */
+        }
+        /* The Value Text (The number) */
+        div[data-testid="stMarkdownContainer"] p {
+            color: #E6EDF3;
+        }
 
-        /* 4. DROPDOWN MENUS */
+        /* 6. DROPDOWN MENUS & TAGS */
         ul[role="listbox"], div[data-baseweb="menu"] {
             background-color: #1E293B !important;
             border: 1px solid #30363d !important;
@@ -40,41 +72,13 @@ st.markdown("""
         li[role="option"]:hover, li[role="option"][aria-selected="true"] {
             background-color: #8AC7DE !important;
             color: #0D1117 !important;
-            font-weight: bold !important;
         }
-
-        /* 5. SLIDER STYLING (The Linear Gauge) */
-        /* The Text above the slider */
-        .slider-label {
-            color: #94A3B8;
-            font-size: 14px;
-            margin-bottom: -10px; /* Pull slider closer to text */
-            font-weight: 400;
-        }
-        /* The Thumb (Draggable Circle) */
-        div[role="slider"] {
-            background-color: #8AC7DE !important;
-            border-color: #8AC7DE !important;
-            box-shadow: 0 0 10px rgba(138, 199, 222, 0.3) !important;
-        }
-        /* The Track (The Line) */
-        div[data-baseweb="slider"] div {
-            background-color: #30363d !important;
-        }
-        /* The Value Text (The number that moves) */
-        div[data-testid="stMarkdownContainer"] p {
-            color: #E6EDF3;
-        }
-
-        /* 6. TAGS & ICONS */
         .stMultiSelect span[data-baseweb="tag"] {
             background-color: #8AC7DE !important; 
             color: #0D1117 !important;
             font-weight: bold;
         }
-        .stSelectbox svg, .stMultiSelect svg { fill: #8AC7DE !important; }
-        ::placeholder { color: #94A3B8 !important; opacity: 1; }
-
+        
         /* 7. TABLE STYLING */
         div[data-testid="stDataFrame"] {
             background-color: #0D1117 !important;
@@ -100,7 +104,9 @@ st.markdown("""
         header {visibility: hidden;}
         footer {visibility: hidden;}
         .block-container {padding-top: 1rem; padding-bottom: 0rem; max-width: 1200px;}
-        p, .stMarkdown {color: #E6EDF3;}
+        input {color: #E6EDF3 !important;}
+        div[data-baseweb="select"] div { color: #E6EDF3 !important; }
+        ::placeholder { color: #94A3B8 !important; opacity: 1; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -133,10 +139,15 @@ df = load_data()
 if df.empty: st.stop()
 
 # --- 4. UI LAYOUT ---
-search_input = st.text_input("", placeholder="Search any Ticker, Strategy, Company or Underlying (e.g. NVDY, Bitcoin, 0DTE)...")
 
-col1, col2, col3 = st.columns(3)
-with col1:
+# ROW 1: Main Search (Slightly reduced width via CSS margin if needed, but handled here by being distinct)
+st.text_input("", placeholder="Search any Ticker, Strategy, Company or Underlying...", key="search_term")
+
+# ROW 2: Filters (3 Columns)
+# We make the Yield column slightly wider if needed, but equal 1:1:1 usually looks best for alignment
+c1, c2, c3 = st.columns([1, 1, 1])
+
+with c1:
     all_tags = set()
     if 'Category' in df.columns:
         for tags in df['Category'].str.split(','):
@@ -144,17 +155,18 @@ with col1:
                 if tag.strip() and tag.strip() != '-': all_tags.add(tag.strip())
     selected_strategies = st.multiselect("", options=sorted(list(all_tags)), placeholder="Filter by Strategy")
 
-with col2:
+with c2:
     freq_opts = sorted(df['Payout'].unique().tolist())
     selected_freq = st.multiselect("", options=freq_opts, placeholder="Payout Frequency")
 
-with col3:
-    # Custom HTML Label to simulate the "Placeholder" look
-    st.markdown('<p class="slider-label">Minimum Yield % (Drag to filter)</p>', unsafe_allow_html=True)
-    # The Slider (Linear Gauge)
-    min_yield = st.slider("", min_value=0, max_value=150, value=0, step=1)
+with c3:
+    # The Slider is now inside a styled box (handled by the 'div[data-testid="stSlider"]' CSS above)
+    min_yield = st.slider("Minimum Yield %", 0, 150, 0)
+
 
 # --- 5. LOGIC & DISPLAY ---
+# Retrieve values
+search_input = st.session_state.search_term
 has_search = bool(search_input)
 has_strat = bool(selected_strategies)
 has_freq = bool(selected_freq)
@@ -184,7 +196,7 @@ if has_search or has_strat or has_freq or has_yield:
         filtered = filtered[filtered['Dividend'] >= min_yield]
 
     if not filtered.empty:
-        # Prepare Display
+        # Prepare Data
         rename_map = {
             'Current Price': 'Price',
             'Dividend': 'Yield %',
@@ -202,7 +214,7 @@ if has_search or has_strat or has_freq or has_yield:
         existing_cols = [c for c in target_order if c in filtered.columns]
         display_df = filtered[existing_cols].rename(columns=rename_map)
 
-        # Sort by Yield
+        # Sort
         if 'Yield %' in display_df.columns:
             display_df = display_df.sort_values(by='Yield %', ascending=False)
 
