@@ -120,7 +120,7 @@ st.markdown("""
         ::placeholder { color: #94A3B8 !important; opacity: 1; }
         
         /* 7. REDUCE GAPS BETWEEN ELEMENTS */
-        .row-widget.stTextInput { margin-bottom: 0 !important; } /* No space after search bar */
+        .row-widget.stTextInput { margin-bottom: -10px !important; } /* Slightly negative margin to pull dropdowns closer */
         .stMultiSelect { margin-top: 0 !important; } /* No space before dropdowns */
         .element-container { margin-top: 0 !important; margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; } /* General tightening */
         .stHorizontalBlock > div { margin-top: 0 !important; } /* For sub-columns */
@@ -202,8 +202,8 @@ if has_search or has_strat or has_freq or has_yield:
             filtered['Underlying'].str.lower().str.contains(term)
         ]
     if has_strat:
-        pattern = '|'.join(selected_strategies)
-        filtered = filtered[filtered['Category'].str.contains(pattern, case=False, regex=True)]
+        for strat in selected_strategies:
+            filtered = filtered[filtered['Category'].str.contains(strat, case=False)]
     if has_freq:
         filtered = filtered[filtered['Payout'].isin(selected_freq)]
     if has_yield and 'Dividend' in filtered.columns:
