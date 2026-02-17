@@ -13,10 +13,13 @@ st.markdown("""
             color: #E6EDF3;
         }
 
-        /* 2. HIDE DEFAULT LABELS */
-        label {display: none !important;}
+        /* 2. GAP REMOVAL (Search Bar to Filters) */
+        /* This pulls the filters up closer to the search bar */
+        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stTextInput"]) {
+            margin-bottom: -15px !important;
+        }
 
-        /* 3. INPUTS & DROPDOWNS */
+        /* 3. INPUTS & DROPDOWNS (Standard Size) */
         div[data-baseweb="select"] > div, 
         div[data-baseweb="input"] > div, 
         div[data-baseweb="base-input"] {
@@ -25,11 +28,65 @@ st.markdown("""
             color: #E6EDF3 !important;
             border-radius: 6px !important;
             min-height: 45px !important;
+            height: 45px !important;
         }
         input { color: #E6EDF3 !important; font-weight: bold !important; }
         div[data-baseweb="select"] div { color: #E6EDF3 !important; }
 
-        /* 4. DROPDOWN MENUS */
+        /* 4. THE YIELD SLIDER (Compact & Matching) */
+        
+        /* The Container Box */
+        div[data-testid="stSlider"] {
+            background-color: #1E293B;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 5px 15px; /* Tight padding */
+            height: 45px !important; /* EXACT match to dropdowns */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        /* The Label Text ("Minimum Yield %") */
+        div[data-testid="stSlider"] label {
+            display: block !important;
+            color: #94A3B8 !important;
+            font-size: 11px !important; /* Smaller font to fit */
+            font-weight: 600 !important;
+            margin-bottom: -20px !important; /* Pull line up closer to text */
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* The Track (The Grey Line) */
+        div[data-baseweb="slider"] div[style*="background-color: rgb(211, 211, 211)"] {
+             background-color: #4B5563 !important;
+             height: 4px !important; /* Thinner line */
+        }
+        
+        /* The Selected Track (The Blue Line) */
+        div[data-baseweb="slider"] div[style*="background-color: rgb(255, 75, 75)"] {
+             background-color: #8AC7DE !important;
+             height: 4px !important;
+        }
+
+        /* The Thumb (Draggable Circle) */
+        div[role="slider"] {
+            background-color: #8AC7DE !important;
+            border: 2px solid #E6EDF3 !important;
+            box-shadow: 0 0 5px rgba(138, 199, 222, 0.4);
+            width: 16px !important; /* Smaller circle */
+            height: 16px !important;
+            top: -6px !important; /* Align vertically on the thin line */
+        }
+        
+        /* The Value Popup (The number that appears when dragging) */
+        div[data-testid="stMarkdownContainer"] p {
+             color: #E6EDF3 !important;
+             font-size: 12px !important;
+        }
+        
+        /* 5. DROPDOWN MENUS */
         ul[role="listbox"], div[data-baseweb="menu"] {
             background-color: #1E293B !important;
             border: 1px solid #30363d !important;
@@ -46,53 +103,6 @@ st.markdown("""
             background-color: #8AC7DE !important; 
             color: #0D1117 !important;
             font-weight: bold;
-        }
-        
-        /* 5. THE YIELD SLIDER (TOTAL OVERHAUL) */
-        
-        /* The Container Box */
-        div[data-testid="stSlider"] {
-            background-color: #1E293B;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 20px 20px 10px 20px; /* More padding for height */
-            height: 100%; /* Fill the container */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        /* The Text Label (Manual Override) */
-        div[data-testid="stSlider"] label {
-            display: block !important;
-            color: #E6EDF3 !important;
-            font-size: 16px !important;
-            font-weight: 600 !important;
-            margin-bottom: 10px !important;
-        }
-        
-        /* The Track (The Grey Line) - FIXED VISIBILITY */
-        div[data-baseweb="slider"] div[style*="background-color: rgb(211, 211, 211)"] {
-             background-color: #4B5563 !important; /* Visible Grey */
-        }
-        
-        /* The Selected Track (The Blue Line) */
-        div[data-baseweb="slider"] div[style*="background-color: rgb(255, 75, 75)"] {
-             background-color: #8AC7DE !important;
-        }
-
-        /* The Thumb (Draggable Circle) */
-        div[role="slider"] {
-            background-color: #8AC7DE !important;
-            border: 2px solid #E6EDF3 !important;
-            box-shadow: 0 0 10px rgba(138, 199, 222, 0.4);
-            width: 20px !important;
-            height: 20px !important;
-        }
-        
-        /* The Value Popup */
-        div[data-testid="stMarkdownContainer"] p {
-             color: #E6EDF3 !important;
         }
         
         /* 6. TABLE STYLING */
@@ -119,7 +129,7 @@ st.markdown("""
         /* Cleanup */
         header {visibility: hidden;}
         footer {visibility: hidden;}
-        .block-container {padding-top: 2rem; padding-bottom: 0rem; max-width: 1400px;}
+        .block-container {padding-top: 1rem; padding-bottom: 0rem; max-width: 1400px;}
         ::placeholder { color: #94A3B8 !important; opacity: 1; }
     </style>
 """, unsafe_allow_html=True)
@@ -139,8 +149,8 @@ def load_data():
     
     text_cols = ['Ticker', 'Strategy', 'Company', 'Underlying', 'Payout', 'Category', 'Pay Date', 'Declaration Date', 'Ex-Div Date']
     for col in text_cols:
-        if col in df.columns: df[col] = df[col].fillna('-').astype(str)
-        else: df[col] = '-'
+        if col in df.columns: df[col] = df[col].fillna('').astype(str)
+        else: df[col] = ''
 
     for col in ['Dividend', 'Current Price', 'Latest Distribution']:
         if col in df.columns:
@@ -153,19 +163,14 @@ df = load_data()
 if df.empty: st.stop()
 
 # --- 4. LAYOUT ---
-
-# Create two main columns: 
-# LEFT (2/3 width) for Search + Dropdowns
-# RIGHT (1/3 width) for the big Yield Slider
-left_col, right_col = st.columns([2, 1])
+# 2 Columns: Left (Search + Filters), Right (Slider)
+left_col, right_col = st.columns([3, 1])
 
 with left_col:
-    # Row 1: Search Bar (Full width of this column)
+    # Row 1: Search
     st.text_input("", placeholder="Search any Ticker, Strategy, Company or Underlying...", key="search_term")
     
-    st.write("") # Spacer
-    
-    # Row 2: The Dropdowns (Side by Side under search)
+    # Row 2: Filters (Nested Columns for tight spacing)
     c1, c2 = st.columns(2)
     with c1:
         all_tags = set()
@@ -179,9 +184,11 @@ with left_col:
         selected_freq = st.multiselect("", options=freq_opts, placeholder="Payout Frequency")
 
 with right_col:
-    # The Yield Slider (Takes up the whole right side block)
-    # We add a spacer to align it vertically if needed, but flexbox CSS handles most
-    min_yield = st.slider("Minimum Yield %", 0, 150, 0)
+    # Yield Slider (Vertically aligned by CSS margin hacks in container)
+    # Spacer to push it down slightly to match the "Row 2" vertical position of the filters
+    st.write("") 
+    st.write("") 
+    min_yield = st.slider("Min Yield %", 0, 150, 0)
 
 
 # --- 5. LOGIC & DISPLAY ---
@@ -233,11 +240,9 @@ if has_search or has_strat or has_freq or has_yield:
         existing_cols = [c for c in target_order if c in filtered.columns]
         display_df = filtered[existing_cols].rename(columns=rename_map)
 
-        # Sort
         if 'Yield %' in display_df.columns:
             display_df = display_df.sort_values(by='Yield %', ascending=False)
 
-        # Dynamic Height
         num_rows = len(display_df)
         dynamic_height = min((num_rows * 35) + 38, 500)
 
