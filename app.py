@@ -95,31 +95,23 @@ def load_data():
     except:
         return pd.DataFrame()
 
-    # A. Clean Headers
     df.columns = df.columns.str.strip()
-
-    # B. Filter Empty Rows
     df = df.dropna(subset=['Ticker'])
     df = df[df['Ticker'] != 'Ticker']
     
-    # C. Fill Text Columns
     text_cols = ['Ticker', 'Strategy', 'Company', 'Underlying', 'Payout', 'Category', 'Pay Date', 'Declaration Date', 'Ex-Div Date']
     for col in text_cols:
         if col in df.columns: df[col] = df[col].fillna('-').astype(str)
         else: df[col] = '-'
 
-    # D. Clean Numeric Columns
-    # 1. Yield %
     if 'Dividend' in df.columns:
         df['Dividend'] = df['Dividend'].astype(str).str.replace('%', '', regex=False)
         df['Dividend'] = pd.to_numeric(df['Dividend'], errors='coerce').fillna(0)
 
-    # 2. Price
     if 'Current Price' in df.columns:
         df['Current Price'] = df['Current Price'].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False)
         df['Current Price'] = pd.to_numeric(df['Current Price'], errors='coerce').fillna(0)
     
-    # 3. Latest Distribution
     if 'Latest Distribution' in df.columns:
         df['Latest Distribution'] = df['Latest Distribution'].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False)
         df['Latest Distribution'] = pd.to_numeric(df['Latest Distribution'], errors='coerce').fillna(0)
@@ -146,10 +138,20 @@ with col2:
     selected_freq = st.multiselect("", options=freq_opts, placeholder="Payout Frequency")
 
 with col3:
-    min_yield = st.number_input("", min_value=0.0, max_value=200.0, step=1.0, format="%.0f", placeholder="Min Yield % (Type a number)")
-
+    # UPDATED: Text Input instead of Number Input to avoid the "0.00" default value
+    yield_input = st.text_input("", placeholder="Min Yield % (e.g. 15)")
 
 # --- 5. LOGIC & DISPLAY ---
+# Convert text input to float safely
+min_yield = 0.0
+if yield_input:
+    try:
+        # Strip % signs and spaces, convert to float
+        clean_input = yield_input.replace('%', '').strip()
+        min_yield = float(clean_input)
+    except:
+        pass # If they type garbage, ignore it (treat as 0)
+
 has_search = bool(search_input)
 has_strat = bool(selected_strategies)
 has_freq = bool(selected_freq)
@@ -179,9 +181,7 @@ if has_search or has_strat or has_freq or has_yield:
         filtered = filtered[filtered['Dividend'] >= min_yield]
 
     if not filtered.empty:
-        # --- PREPARE TABLE FOR DISPLAY ---
-        
-        # 1. Rename Columns for User
+        # --- PREPARE TABLE ---
         rename_map = {
             'Current Price': 'Price',
             'Dividend': 'Yield %',
@@ -191,34 +191,29 @@ if has_search or has_strat or has_freq or has_yield:
             'Pay Date': 'Pay Date'
         }
         
-        # 2. Select Columns in EXACT Order requested
-        # Added 'Underlying' between Strategy and Price
         target_order = [
             'Ticker', 
             'Strategy', 
             'Underlying',
-            'Current Price',      # Will be renamed to Price
+            'Current Price',
             'Payout', 
-            'Latest Distribution',# Will be renamed to Latest Dist
-            'Dividend',           # Will be renamed to Yield %
+            'Latest Distribution',
+            'Dividend',
             'Declaration Date', 
             'Ex-Div Date', 
             'Pay Date'
         ]
         
-        # Filter strictly to columns that actually exist in data
         existing_cols = [c for c in target_order if c in filtered.columns]
         display_df = filtered[existing_cols].rename(columns=rename_map)
 
-        # 3. SORT BY HIGHEST YIELD
+        # SORT BY HIGHEST YIELD
         if 'Yield %' in display_df.columns:
             display_df = display_df.sort_values(by='Yield %', ascending=False)
 
-        # 4. Dynamic Height Calculation
         num_rows = len(display_df)
         dynamic_height = min((num_rows * 35) + 38, 500)
 
-        # 5. Render Table
         st.dataframe(
             display_df.style.format({
                 'Yield %': '{:.2f}%',
