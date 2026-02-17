@@ -16,7 +16,7 @@ st.markdown("""
         /* 2. HIDE DEFAULT LABELS */
         label {display: none !important;}
 
-        /* 3. MATCHING INPUT BOXES (Dropdowns & Text Input) */
+        /* 3. INPUTS & DROPDOWNS */
         div[data-baseweb="select"] > div, 
         div[data-baseweb="input"] > div, 
         div[data-baseweb="base-input"] {
@@ -24,43 +24,12 @@ st.markdown("""
             border-color: #30363d !important;
             color: #E6EDF3 !important;
             border-radius: 6px !important;
-            min-height: 45px !important; /* Enforce height consistency */
+            min-height: 45px !important;
         }
+        input { color: #E6EDF3 !important; font-weight: bold !important; }
+        div[data-baseweb="select"] div { color: #E6EDF3 !important; }
 
-        /* 4. THE YIELD "BOX" (Containerizing the Slider) */
-        /* This targets the slider widget wrapper to make it look like a box */
-        div[data-testid="stSlider"] {
-            background-color: #1E293B;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 10px 15px; /* Internal breathing room */
-            min-height: 45px;   /* Match dropdown height */
-        }
-        
-        /* 5. SLIDER STYLING INSIDE THE BOX */
-        /* The Label Text */
-        div[data-testid="stSlider"] label {
-            display: block !important; /* Show label only inside slider */
-            color: #94A3B8 !important;
-            font-size: 12px !important;
-            font-weight: 500 !important;
-            margin-bottom: -15px !important; /* Pull label down closer to line */
-        }
-        /* The Thumb (Circle) */
-        div[role="slider"] {
-            background-color: #8AC7DE !important;
-            box-shadow: 0 0 5px rgba(138, 199, 222, 0.5) !important;
-        }
-        /* The Track (Line) */
-        div[data-baseweb="slider"] div {
-            background-color: #0D1117 !important; /* Darker track for contrast */
-        }
-        /* The Value Text (The number) */
-        div[data-testid="stMarkdownContainer"] p {
-            color: #E6EDF3;
-        }
-
-        /* 6. DROPDOWN MENUS & TAGS */
+        /* 4. DROPDOWN MENUS */
         ul[role="listbox"], div[data-baseweb="menu"] {
             background-color: #1E293B !important;
             border: 1px solid #30363d !important;
@@ -79,7 +48,54 @@ st.markdown("""
             font-weight: bold;
         }
         
-        /* 7. TABLE STYLING */
+        /* 5. THE YIELD SLIDER (TOTAL OVERHAUL) */
+        
+        /* The Container Box */
+        div[data-testid="stSlider"] {
+            background-color: #1E293B;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px 20px 10px 20px; /* More padding for height */
+            height: 100%; /* Fill the container */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        /* The Text Label (Manual Override) */
+        div[data-testid="stSlider"] label {
+            display: block !important;
+            color: #E6EDF3 !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            margin-bottom: 10px !important;
+        }
+        
+        /* The Track (The Grey Line) - FIXED VISIBILITY */
+        div[data-baseweb="slider"] div[style*="background-color: rgb(211, 211, 211)"] {
+             background-color: #4B5563 !important; /* Visible Grey */
+        }
+        
+        /* The Selected Track (The Blue Line) */
+        div[data-baseweb="slider"] div[style*="background-color: rgb(255, 75, 75)"] {
+             background-color: #8AC7DE !important;
+        }
+
+        /* The Thumb (Draggable Circle) */
+        div[role="slider"] {
+            background-color: #8AC7DE !important;
+            border: 2px solid #E6EDF3 !important;
+            box-shadow: 0 0 10px rgba(138, 199, 222, 0.4);
+            width: 20px !important;
+            height: 20px !important;
+        }
+        
+        /* The Value Popup */
+        div[data-testid="stMarkdownContainer"] p {
+             color: #E6EDF3 !important;
+        }
+        
+        /* 6. TABLE STYLING */
         div[data-testid="stDataFrame"] {
             background-color: #0D1117 !important;
             border: 1px solid #30363d;
@@ -103,9 +119,7 @@ st.markdown("""
         /* Cleanup */
         header {visibility: hidden;}
         footer {visibility: hidden;}
-        .block-container {padding-top: 1rem; padding-bottom: 0rem; max-width: 1200px;}
-        input {color: #E6EDF3 !important;}
-        div[data-baseweb="select"] div { color: #E6EDF3 !important; }
+        .block-container {padding-top: 2rem; padding-bottom: 0rem; max-width: 1400px;}
         ::placeholder { color: #94A3B8 !important; opacity: 1; }
     </style>
 """, unsafe_allow_html=True)
@@ -138,34 +152,39 @@ def load_data():
 df = load_data()
 if df.empty: st.stop()
 
-# --- 4. UI LAYOUT ---
+# --- 4. LAYOUT ---
 
-# ROW 1: Main Search (Slightly reduced width via CSS margin if needed, but handled here by being distinct)
-st.text_input("", placeholder="Search any Ticker, Strategy, Company or Underlying...", key="search_term")
+# Create two main columns: 
+# LEFT (2/3 width) for Search + Dropdowns
+# RIGHT (1/3 width) for the big Yield Slider
+left_col, right_col = st.columns([2, 1])
 
-# ROW 2: Filters (3 Columns)
-# We make the Yield column slightly wider if needed, but equal 1:1:1 usually looks best for alignment
-c1, c2, c3 = st.columns([1, 1, 1])
+with left_col:
+    # Row 1: Search Bar (Full width of this column)
+    st.text_input("", placeholder="Search any Ticker, Strategy, Company or Underlying...", key="search_term")
+    
+    st.write("") # Spacer
+    
+    # Row 2: The Dropdowns (Side by Side under search)
+    c1, c2 = st.columns(2)
+    with c1:
+        all_tags = set()
+        if 'Category' in df.columns:
+            for tags in df['Category'].str.split(','):
+                for tag in tags:
+                    if tag.strip() and tag.strip() != '-': all_tags.add(tag.strip())
+        selected_strategies = st.multiselect("", options=sorted(list(all_tags)), placeholder="Filter by Strategy")
+    with c2:
+        freq_opts = sorted(df['Payout'].unique().tolist())
+        selected_freq = st.multiselect("", options=freq_opts, placeholder="Payout Frequency")
 
-with c1:
-    all_tags = set()
-    if 'Category' in df.columns:
-        for tags in df['Category'].str.split(','):
-            for tag in tags:
-                if tag.strip() and tag.strip() != '-': all_tags.add(tag.strip())
-    selected_strategies = st.multiselect("", options=sorted(list(all_tags)), placeholder="Filter by Strategy")
-
-with c2:
-    freq_opts = sorted(df['Payout'].unique().tolist())
-    selected_freq = st.multiselect("", options=freq_opts, placeholder="Payout Frequency")
-
-with c3:
-    # The Slider is now inside a styled box (handled by the 'div[data-testid="stSlider"]' CSS above)
+with right_col:
+    # The Yield Slider (Takes up the whole right side block)
+    # We add a spacer to align it vertically if needed, but flexbox CSS handles most
     min_yield = st.slider("Minimum Yield %", 0, 150, 0)
 
 
 # --- 5. LOGIC & DISPLAY ---
-# Retrieve values
 search_input = st.session_state.search_term
 has_search = bool(search_input)
 has_strat = bool(selected_strategies)
@@ -196,7 +215,7 @@ if has_search or has_strat or has_freq or has_yield:
         filtered = filtered[filtered['Dividend'] >= min_yield]
 
     if not filtered.empty:
-        # Prepare Data
+        # Prepare Display
         rename_map = {
             'Current Price': 'Price',
             'Dividend': 'Yield %',
