@@ -161,7 +161,7 @@ left_col, right_col = st.columns([2, 1])
 
 with left_col:
     # Row 1: Search Bar (Full width of this column)
-    st.text_input("", placeholder="Search any Ticker, Strategy, Company or Underlying...", key="search_term")
+    st.text_input("", placeholder="🔍 Search any Ticker, Strategy, Company or Underlying...", key="search_term")
    
     # No spacer - removed to close the gap
    
@@ -173,15 +173,15 @@ with left_col:
             for tags in df['Category'].str.split(','):
                 for tag in tags:
                     if tag.strip() and tag.strip() != '-': all_tags.add(tag.strip())
-        selected_strategies = st.multiselect("", options=sorted(list(all_tags)), placeholder="Filter by Strategy")
+        selected_strategies = st.multiselect("", options=sorted(list(all_tags)), placeholder="📊 Filter by Strategy")
     with c2:
         freq_opts = sorted(df['Payout'].unique().tolist())
-        selected_freq = st.multiselect("", options=freq_opts, placeholder="Payout Frequency")
+        selected_freq = st.multiselect("", options=freq_opts, placeholder="⏰ Payout Frequency")
 
 with right_col:
     # The Yield Slider (Takes up the whole right side block)
     # We add a spacer to align it vertically if needed, but flexbox CSS handles most
-    min_yield = st.slider("Minimum Yield %", 0, 150, 0)
+    min_yield = st.slider("💰 Search by Minimum Annualized Yield %", 0, 150, 0)
 
 # --- 5. LOGIC & DISPLAY ---
 search_input = st.session_state.search_term
