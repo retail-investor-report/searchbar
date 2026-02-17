@@ -4,69 +4,74 @@ import pandas as pd
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="RIR Search", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CUSTOM CSS (Enhanced to reduce padding/margins and make content fuller) ---
+# --- 2. CUSTOM CSS ---
 st.markdown("""
     <style>
-        /* 1. MAIN BACKGROUND */
+        /* MAIN BACKGROUND */
         .stApp {
             background-color: #0D1117;
             color: #E6EDF3;
         }
         
-        /* Reduce global padding in the main container */
+        /* Reduce global padding */
         .block-container {
             padding-top: 1rem !important;
             padding-bottom: 0rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
-            max-width: 100% !important;  /* Remove any artificial max-width cap */
-        }
-        
-        /* Make report container take full width */
-        .stApp > div:first-child {
             max-width: 100% !important;
         }
         
-        /* Hide Streamlit header/footer completely */
         header {visibility: hidden !important; height: 0 !important;}
         footer {visibility: hidden !important;}
         
-        /* 2. HIDE DEFAULT LABELS */
-        label {display: none !important;}
-        
-        /* 3. INPUTS & DROPDOWNS - make them slightly taller/more prominent */
+        /* INPUTS & DROPDOWNS - uniform height and styling */
         div[data-baseweb="select"] > div,
         div[data-baseweb="input"] > div,
         div[data-baseweb="base-input"] {
             background-color: #1E293B !important;
             border-color: #30363d !important;
-            color: #E6EDF3 !important;
+            color: #ffffff !important;           /* Pure white text */
             border-radius: 6px !important;
-            min-height: 48px !important;  /* Slightly taller for better touch/click */
+            min-height: 48px !important;          /* Same height for all */
+            height: 48px !important;
             font-size: 16px !important;
+            font-weight: normal !important;       /* Not bold */
+            line-height: 1.5 !important;
+            padding: 0 12px !important;
         }
-        input { color: #E6EDF3 !important; font-weight: bold !important; }
         
-        /* 4. DROPDOWN MENUS */
-        ul[role="listbox"], div[data-baseweb="menu"] {
-            background-color: #1E293B !important;
-            border: 1px solid #30363d !important;
+        /* Make sure text input matches exactly */
+        .stTextInput > div > div > input {
+            height: 48px !important;
+            min-height: 48px !important;
+            color: #ffffff !important;
+            font-weight: normal !important;
+            font-size: 16px !important;
+            background-color: transparent !important;
         }
-        li[role="option"] {
+        
+        /* Fix blurry text - better contrast + crisp rendering */
+        input, div[data-baseweb="select"] div, .stTextInput input {
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+            text-rendering: optimizeLegibility !important;
+        }
+        
+        /* Placeholder styling */
+        ::placeholder {
+            color: #94A3B8 !important;
+            opacity: 1 !important;
+            font-weight: normal !important;
+        }
+        
+        /* Dropdown menu items */
+        ul[role="listbox"] li, div[data-baseweb="menu"] li {
+            font-size: 16px !important;
             color: #E6EDF3 !important;
-            background-color: #1E293B !important;
         }
-        li[role="option"]:hover, li[role="option"][aria-selected="true"] {
-            background-color: #8AC7DE !important;
-            color: #0D1117 !important;
-        }
-        .stMultiSelect span[data-baseweb="tag"] {
-            background-color: #8AC7DE !important;
-            color: #0D1117 !important;
-            font-weight: bold;
-        }
-       
-        /* 5. THE YIELD RANGE SLIDER */
+        
+        /* Slider styling */
         div[data-testid="stSlider"] {
             background-color: #1E293B;
             border: 1px solid #30363d;
@@ -77,7 +82,7 @@ st.markdown("""
             flex-direction: column;
             justify-content: center;
         }
-       
+        
         div[data-testid="stSlider"] label {
             display: block !important;
             color: #E6EDF3 !important;
@@ -85,36 +90,15 @@ st.markdown("""
             font-weight: 600 !important;
             margin-bottom: 6px !important;
         }
-       
-        div[data-baseweb="slider"] div[style*="background-color: rgb(211, 211, 211)"] {
-             background-color: #4B5563 !important;
-        }
-       
-        div[data-baseweb="slider"] div[style*="background-color: rgb(255, 75, 75)"] {
-             background-color: #8AC7DE !important;
-        }
-       
-        div[role="slider"] {
-            background-color: #8AC7DE !important;
-            border: 2px solid #E6EDF3 !important;
-            box-shadow: 0 0 10px rgba(138, 199, 222, 0.4);
-            width: 22px !important;
-            height: 22px !important;
-        }
-       
-        div[data-baseweb="slider"] span {
-            color: #E6EDF3 !important;
-            font-size: 16px !important;
-            font-weight: bold !important;
-        }
-       
-        /* 6. TABLE STYLING - make it feel more expansive */
+        
+        /* Table styling */
         div[data-testid="stDataFrame"] {
             background-color: #0D1117 !important;
             border: 1px solid #30363d;
             border-radius: 6px;
             overflow: hidden;
         }
+        
         div[data-testid="stDataFrame"] div[role="columnheader"] {
             background-color: #1E293B !important;
             color: #8AC7DE !important;
@@ -122,25 +106,22 @@ st.markdown("""
             border-bottom: 1px solid #30363d;
             padding: 12px !important;
         }
+        
         div[data-testid="stDataFrame"] div[role="gridcell"] {
             background-color: #0D1117 !important;
             color: #E6EDF3 !important;
             border-bottom: 1px solid #30363d;
             padding: 10px !important;
         }
-        div[data-testid="stDataFrame"] div[role="row"]:hover div[role="gridcell"] {
-            background-color: #161B22 !important;
-        }
         
-        /* Reduce gaps everywhere */
+        /* Reduce gaps */
         .row-widget.stTextInput { margin-bottom: -8px !important; }
         .stMultiSelect { margin-top: 0 !important; margin-bottom: 0 !important; }
-        .element-container { margin-top: 0 !important; margin-bottom: 0 !important; padding: 0 !important; }
+        .element-container { margin: 0 !important; padding: 0 !important; }
         .stHorizontalBlock > div { margin-top: 0 !important; padding-top: 0 !important; }
         
-        /* Make the whole app feel less boxed in */
-        section[data-testid="stSidebar"] { display: none !important; }  /* Just in case */
-        .st-emotion-cache-ocqkz7 { gap: 0.5rem !important; }  /* Reduce vertical spacing between elements */
+        /* Tighter layout overall */
+        .st-emotion-cache-ocqkz7 { gap: 0.5rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -170,7 +151,7 @@ def load_data():
 df = load_data()
 if df.empty: st.stop()
 
-# --- 4. LAYOUT (minimal vertical spacing) ---
+# --- 4. LAYOUT ---
 left_col, right_col = st.columns([2, 1])
 
 with left_col:
@@ -193,15 +174,17 @@ with right_col:
 
 # --- 5. LOGIC & DISPLAY ---
 search_input = st.session_state.get("search_term", "")
-has_search = bool(search_input)
+has_search = bool(search_input.strip())
 has_strat = bool(selected_strategies)
 has_freq = bool(selected_freq)
 has_yield = yield_range[0] > 0 or yield_range[1] < 150
 
+# Only show table if at least one filter/search is active
 if has_search or has_strat or has_freq or has_yield:
     filtered = df.copy()
+    
     if has_search:
-        term = search_input.lower()
+        term = search_input.lower().strip()
         filtered = filtered[
             filtered['Ticker'].str.lower().str.contains(term) |
             filtered['Strategy'].str.lower().str.contains(term) |
@@ -209,11 +192,14 @@ if has_search or has_strat or has_freq or has_yield:
             filtered['Category'].str.lower().str.contains(term) |
             filtered['Underlying'].str.lower().str.contains(term)
         ]
+    
     if has_strat:
         for strat in selected_strategies:
             filtered = filtered[filtered['Category'].str.contains(strat, case=False)]
+    
     if has_freq:
         filtered = filtered[filtered['Payout'].isin(selected_freq)]
+    
     if has_yield and 'Dividend' in filtered.columns:
         filtered = filtered[(filtered['Dividend'] >= yield_range[0]) & (filtered['Dividend'] <= yield_range[1])]
     
@@ -239,7 +225,7 @@ if has_search or has_strat or has_freq or has_yield:
             display_df = display_df.sort_values(by='Yield %', ascending=False)
        
         num_rows = len(display_df)
-        dynamic_height = min((num_rows * 36) + 50, 700)  # Slightly taller rows + header
+        dynamic_height = min((num_rows * 36) + 50, 700)
         
         st.dataframe(
             display_df.style.format({
@@ -253,19 +239,3 @@ if has_search or has_strat or has_freq or has_yield:
         )
     else:
         st.info("No funds match your criteria.")
-else:
-    # Optional: show full table when no filters
-    st.dataframe(
-        df.rename(columns={
-            'Current Price': 'Price',
-            'Dividend': 'Yield %',
-            'Latest Distribution': 'Latest Dist'
-        }).style.format({
-            'Yield %': '{:.2f}%',
-            'Price': '${:.2f}',
-            'Latest Dist': '${:.4f}'
-        }),
-        height=600,
-        use_container_width=True,
-        hide_index=True
-    )
