@@ -95,7 +95,7 @@ def load_data():
     except:
         return pd.DataFrame()
 
-    # A. Clean Headers (Strip Spaces like "Latest Distribution ")
+    # A. Clean Headers
     df.columns = df.columns.str.strip()
 
     # B. Filter Empty Rows
@@ -109,17 +109,17 @@ def load_data():
         else: df[col] = '-'
 
     # D. Clean Numeric Columns
-    # 1. Yield % (Dividend Column)
+    # 1. Yield %
     if 'Dividend' in df.columns:
         df['Dividend'] = df['Dividend'].astype(str).str.replace('%', '', regex=False)
         df['Dividend'] = pd.to_numeric(df['Dividend'], errors='coerce').fillna(0)
 
-    # 2. Price (Current Price)
+    # 2. Price
     if 'Current Price' in df.columns:
         df['Current Price'] = df['Current Price'].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False)
         df['Current Price'] = pd.to_numeric(df['Current Price'], errors='coerce').fillna(0)
     
-    # 3. Latest Distribution (Amount)
+    # 3. Latest Distribution
     if 'Latest Distribution' in df.columns:
         df['Latest Distribution'] = df['Latest Distribution'].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False)
         df['Latest Distribution'] = pd.to_numeric(df['Latest Distribution'], errors='coerce').fillna(0)
@@ -181,7 +181,7 @@ if has_search or has_strat or has_freq or has_yield:
     if not filtered.empty:
         # --- PREPARE TABLE FOR DISPLAY ---
         
-        # 1. Rename Columns for User (Maps CSV Name -> Display Name)
+        # 1. Rename Columns for User
         rename_map = {
             'Current Price': 'Price',
             'Dividend': 'Yield %',
@@ -192,10 +192,11 @@ if has_search or has_strat or has_freq or has_yield:
         }
         
         # 2. Select Columns in EXACT Order requested
-        # Ticker, Strategy, Price, Payout, Latest Distribution, Yield %, Declaration Date, Ex-Div Date, Pay Date
+        # Added 'Underlying' between Strategy and Price
         target_order = [
             'Ticker', 
             'Strategy', 
+            'Underlying',
             'Current Price',      # Will be renamed to Price
             'Payout', 
             'Latest Distribution',# Will be renamed to Latest Dist
@@ -209,11 +210,15 @@ if has_search or has_strat or has_freq or has_yield:
         existing_cols = [c for c in target_order if c in filtered.columns]
         display_df = filtered[existing_cols].rename(columns=rename_map)
 
-        # 3. Dynamic Height Calculation
+        # 3. SORT BY HIGHEST YIELD
+        if 'Yield %' in display_df.columns:
+            display_df = display_df.sort_values(by='Yield %', ascending=False)
+
+        # 4. Dynamic Height Calculation
         num_rows = len(display_df)
         dynamic_height = min((num_rows * 35) + 38, 500)
 
-        # 4. Render Table
+        # 5. Render Table
         st.dataframe(
             display_df.style.format({
                 'Yield %': '{:.2f}%',
