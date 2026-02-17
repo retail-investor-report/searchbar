@@ -4,7 +4,7 @@ import pandas as pd
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="RIR Search", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. CUSTOM CSS ---
+# --- 2. CUSTOM CSS (DESIGNER'S CHOICE) ---
 st.markdown("""
     <style>
         /* 1. MAIN BACKGROUND */
@@ -14,57 +14,68 @@ st.markdown("""
         }
 
         /* 2. GAP REMOVAL (Search Bar to Filters) */
-        /* This pulls the filters up closer to the search bar */
+        /* Pull the filters up to meet the search bar */
         div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stTextInput"]) {
-            margin-bottom: -15px !important;
+            margin-bottom: -20px !important;
         }
 
-        /* 3. INPUTS & DROPDOWNS (Standard Size) */
+        /* 3. UNIFIED CONTAINER STYLING (Dropdowns & Slider) */
+        /* We force ALL input containers to be the same height (60px) and style */
+        
+        /* DROPDOWNS */
         div[data-baseweb="select"] > div, 
         div[data-baseweb="input"] > div, 
         div[data-baseweb="base-input"] {
             background-color: #1E293B !important;
             border-color: #30363d !important;
             color: #E6EDF3 !important;
-            border-radius: 6px !important;
-            min-height: 45px !important;
-            height: 45px !important;
+            border-radius: 8px !important;
+            height: 60px !important; /* Unified Height */
+            display: flex;
+            align-items: center; /* Vertically Center Text */
         }
-        input { color: #E6EDF3 !important; font-weight: bold !important; }
-        div[data-baseweb="select"] div { color: #E6EDF3 !important; }
 
-        /* 4. THE YIELD SLIDER (Compact & Matching) */
-        
-        /* The Container Box */
+        /* SLIDER CONTAINER */
         div[data-testid="stSlider"] {
             background-color: #1E293B;
             border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 5px 15px; /* Tight padding */
-            height: 45px !important; /* EXACT match to dropdowns */
+            border-radius: 8px;
+            height: 60px !important; /* Unified Height */
+            padding: 0px 15px !important; /* Remove default padding */
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: center; /* Vertically Center Slider */
         }
+
+        /* 4. SLIDER INTERNALS (The Mechanics) */
         
-        /* The Label Text ("Minimum Yield %") */
+        /* The Label ("Minimum Yield %") */
         div[data-testid="stSlider"] label {
             display: block !important;
             color: #94A3B8 !important;
-            font-size: 11px !important; /* Smaller font to fit */
-            font-weight: 600 !important;
-            margin-bottom: -20px !important; /* Pull line up closer to text */
+            font-size: 10px !important;
+            font-weight: 700 !important;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
+            margin-bottom: 0px !important; /* Tighten up */
+            margin-top: -8px !important; /* Move label up slightly */
         }
         
-        /* The Track (The Grey Line) */
+        /* The Value Text (The "0" or "50") */
+        div[data-testid="stMarkdownContainer"] p {
+             color: #E6EDF3 !important;
+             font-size: 14px !important;
+             font-weight: bold !important;
+             margin-bottom: 0px !important;
+        }
+
+        /* The Track (Grey Line) */
         div[data-baseweb="slider"] div[style*="background-color: rgb(211, 211, 211)"] {
              background-color: #4B5563 !important;
-             height: 4px !important; /* Thinner line */
+             height: 4px !important;
         }
         
-        /* The Selected Track (The Blue Line) */
+        /* The Selected Track (Blue Line) */
         div[data-baseweb="slider"] div[style*="background-color: rgb(255, 75, 75)"] {
              background-color: #8AC7DE !important;
              height: 4px !important;
@@ -74,19 +85,16 @@ st.markdown("""
         div[role="slider"] {
             background-color: #8AC7DE !important;
             border: 2px solid #E6EDF3 !important;
-            box-shadow: 0 0 5px rgba(138, 199, 222, 0.4);
-            width: 16px !important; /* Smaller circle */
-            height: 16px !important;
-            top: -6px !important; /* Align vertically on the thin line */
+            box-shadow: 0 0 8px rgba(138, 199, 222, 0.4);
+            width: 18px !important;
+            height: 18px !important;
         }
+
+        /* 5. GENERAL UI POLISH */
+        input { color: #E6EDF3 !important; font-weight: bold !important; }
+        div[data-baseweb="select"] div { color: #E6EDF3 !important; }
         
-        /* The Value Popup (The number that appears when dragging) */
-        div[data-testid="stMarkdownContainer"] p {
-             color: #E6EDF3 !important;
-             font-size: 12px !important;
-        }
-        
-        /* 5. DROPDOWN MENUS */
+        /* Dropdown Menus */
         ul[role="listbox"], div[data-baseweb="menu"] {
             background-color: #1E293B !important;
             border: 1px solid #30363d !important;
@@ -104,7 +112,7 @@ st.markdown("""
             color: #0D1117 !important;
             font-weight: bold;
         }
-        
+
         /* 6. TABLE STYLING */
         div[data-testid="stDataFrame"] {
             background-color: #0D1117 !important;
@@ -127,9 +135,10 @@ st.markdown("""
         }
 
         /* Cleanup */
+        label {display: none;} /* Hide default labels globally */
         header {visibility: hidden;}
         footer {visibility: hidden;}
-        .block-container {padding-top: 1rem; padding-bottom: 0rem; max-width: 1400px;}
+        .block-container {padding-top: 2rem; padding-bottom: 0rem; max-width: 1400px;}
         ::placeholder { color: #94A3B8 !important; opacity: 1; }
     </style>
 """, unsafe_allow_html=True)
@@ -150,7 +159,7 @@ def load_data():
     text_cols = ['Ticker', 'Strategy', 'Company', 'Underlying', 'Payout', 'Category', 'Pay Date', 'Declaration Date', 'Ex-Div Date']
     for col in text_cols:
         if col in df.columns: df[col] = df[col].fillna('').astype(str)
-        else: df[col] = ''
+        else: df[col] = '-'
 
     for col in ['Dividend', 'Current Price', 'Latest Distribution']:
         if col in df.columns:
@@ -163,14 +172,14 @@ df = load_data()
 if df.empty: st.stop()
 
 # --- 4. LAYOUT ---
-# 2 Columns: Left (Search + Filters), Right (Slider)
+# Left Col (Search + Filters), Right Col (Slider)
 left_col, right_col = st.columns([3, 1])
 
 with left_col:
     # Row 1: Search
     st.text_input("", placeholder="Search any Ticker, Strategy, Company or Underlying...", key="search_term")
     
-    # Row 2: Filters (Nested Columns for tight spacing)
+    # Row 2: Filters (Nested)
     c1, c2 = st.columns(2)
     with c1:
         all_tags = set()
@@ -184,11 +193,12 @@ with left_col:
         selected_freq = st.multiselect("", options=freq_opts, placeholder="Payout Frequency")
 
 with right_col:
-    # Yield Slider (Vertically aligned by CSS margin hacks in container)
-    # Spacer to push it down slightly to match the "Row 2" vertical position of the filters
+    # Spacer to align with the second row of the left column
+    # Since we used negative margins, we just place the slider directly.
+    # The CSS height matching ensures alignment.
+    st.write("") # Micro-adjust if needed, but 60px should match 
     st.write("") 
-    st.write("") 
-    min_yield = st.slider("Min Yield %", 0, 150, 0)
+    min_yield = st.slider("Minimum Yield %", 0, 150, 0)
 
 
 # --- 5. LOGIC & DISPLAY ---
