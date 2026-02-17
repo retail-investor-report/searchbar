@@ -52,7 +52,7 @@ st.markdown("""
             background-color: #1E293B;
             border: 1px solid #30363d;
             border-radius: 6px;
-            padding: 10px 15px; /* Reduced padding for a tighter fit */
+            padding: 5px 10px; /* Further reduced padding for tighter fit */
             height: 100%; /* Fill the container */
             display: flex;
             flex-direction: column;
@@ -63,9 +63,9 @@ st.markdown("""
         div[data-testid="stSlider"] label {
             display: block !important;
             color: #E6EDF3 !important;
-            font-size: 18px !important; /* Increased font size for better visibility */
+            font-size: 16px !important; /* Adjusted font size */
             font-weight: 600 !important;
-            margin-bottom: 8px !important; /* Slightly reduced margin */
+            margin-bottom: 5px !important; /* Reduced margin */
         }
        
         /* The Track (The Grey Line) - FIXED VISIBILITY */
@@ -86,9 +86,11 @@ st.markdown("""
             height: 20px !important;
         }
        
-        /* The Value Popup */
-        div[data-testid="stMarkdownContainer"] p {
-             color: #E6EDF3 !important;
+        /* The Value Display (next to slider) */
+        div[data-baseweb="slider"] span {
+            color: #E6EDF3 !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
         }
        
         /* 6. TABLE STYLING */
@@ -118,8 +120,10 @@ st.markdown("""
         ::placeholder { color: #94A3B8 !important; opacity: 1; }
         
         /* 7. REDUCE GAPS BETWEEN ELEMENTS */
-        .row-widget.stTextInput { margin-bottom: 10px !important; } /* Tighten space after search bar */
-        .element-container { margin-top: 0 !important; margin-bottom: 0 !important; } /* General tightening */
+        .row-widget.stTextInput { margin-bottom: 0 !important; } /* No space after search bar */
+        .stMultiSelect { margin-top: 0 !important; } /* No space before dropdowns */
+        .element-container { margin-top: 0 !important; margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; } /* General tightening */
+        .stHorizontalBlock > div { margin-top: 0 !important; } /* For sub-columns */
     </style>
 """, unsafe_allow_html=True)
 
